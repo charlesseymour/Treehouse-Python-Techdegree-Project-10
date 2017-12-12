@@ -4,7 +4,7 @@ from flask.ext.restful import (Resource, Api, reqparse,
                                inputs, fields, marshal,
                                marshal_with, url_for)
 
-#from auth import auth
+from auth import auth
 import models
 
 todo_fields = {
@@ -30,6 +30,7 @@ class TodoList(Resource):
         return {'todos': todos}
     
     @marshal_with(todo_fields)
+    @auth.login_required
     def post(self):
         args = self.reqparse.parse_args()
         todo = models.Todo.create(**args)
@@ -46,13 +47,15 @@ class Todo(Resource):
         )
         super().__init__()
 
-    @marshal_with(todo_fields)    
+    @marshal_with(todo_fields)
+    @auth.login_required
     def put(self, id):
         args = self.reqparse.parse_args()
         query = models.Todo.update(**args).where(models.Todo.id==id)
         query.execute()
         return models.Todo.get(models.Todo.id==id), 200
 
+    @auth.login_required
     def delete(self, id):
         query = models.Todo.delete().where(models.Todo.id==id)
         query.execute()
