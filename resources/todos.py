@@ -7,6 +7,7 @@ from flask.ext.restful import (Resource, Api, reqparse,
 from auth import auth
 import models
 
+
 todo_fields = {
     'id': fields.Integer,
     'name': fields.String,

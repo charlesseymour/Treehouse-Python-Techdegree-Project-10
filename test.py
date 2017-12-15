@@ -2,12 +2,12 @@ from coverage import coverage
 cov = coverage(omit=['env/*', 'test.py'])
 cov.start()
 
-import unittest, os
+import unittest, os, app, datetime
 
 from playhouse.test_utils import test_database
 from peewee import *
 
-import app, datetime
+import app
 from models import Todo, User
 
 
@@ -46,6 +46,22 @@ class TodoModelTestCase(unittest.TestCase):
             self.assertEqual(todo.name, 'Go bowling')
             now = datetime.datetime.now()
             self.assertLess(todo.created_at, now)
+
+class ResourceTestCase(unittest.TestCase):
+    def setUp(self):
+        app.app.config['TESTING'] = True
+        app.app.config['WTF_CSRF_ENABLED'] = False
+        self.app = app.app.test_client()
+
+    def test_todolist_get(self):
+        rv = self.app.get('/api/v1/todos')
+        self.assertEqual(rv.status_code, 200)
+
+    def test_todolist_post(self):
+        with test_database(TEST_DB, (Todo, User)):
+            User.create_user('test_user', 'test_user@example.com', 'password')
+            
+
 
 if __name__ == '__main__':
     try:
