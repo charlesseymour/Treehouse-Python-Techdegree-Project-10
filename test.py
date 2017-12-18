@@ -1,10 +1,10 @@
-# test change
 from coverage import coverage
 cov = coverage(omit=['env/*', 'test.py'])
 cov.start()
 
 import unittest, os, app, datetime
 
+from base64 import b64encode
 from playhouse.test_utils import test_database
 from peewee import *
 
@@ -23,6 +23,9 @@ USER_DATA = {
     'password': 'password'
 }
 
+headers = {
+    'Authorization': 'Basic ' + b64encode('test_user:password'.encode()).decode()
+}
 class UserModelTestCase(unittest.TestCase):
     def test_create_user(self):
         with test_database(TEST_DB, (User,)):
@@ -55,13 +58,61 @@ class ResourceTestCase(unittest.TestCase):
         self.app = app.app.test_client()
 
     def test_todolist_get(self):
-        rv = self.app.get('/api/v1/todos')
-        self.assertEqual(rv.status_code, 200)
+        with test_database(TEST_DB, (Todo,)):
+            Todo.create(name="Cook dinner")
+            Todo.create(name="Wash dishes")
+            rv = self.app.get('/api/v1/todos')
+            self.assertEqual(rv.status_code, 200)
+            self.assertIn(b"Cook dinner", rv.data)
+            self.assertIn(b"Wash dishes", rv.data)
 
     def test_todolist_post(self):
         with test_database(TEST_DB, (Todo, User)):
             User.create_user('test_user', 'test_user@example.com', 'password')
+            rv = self.app.post('/api/v1/todos',
+                               headers=headers,
+                               data = {'name': 'Go bowling'}
+                               )
+            self.assertEqual(rv.status_code, 201)                   
+            self.assertEqual(Todo.select().count(), 1)
+            todo = Todo.select().get()
+            self.assertEqual(todo.name, 'Go bowling')
+            self.assertIn(b"Go bowling", rv.data)
             
+    def test_todo_put(self):
+        with test_database(TEST_DB, (Todo, User)):
+            User.create_user('test_user', 'test_user@example.com', 'password')
+            Todo.create(name='Cook dinner')
+            rv = self.app.put('/api/v1/todos/1',
+                               headers=headers,
+                               data = {'name': 'Wash dishes'}
+                               )
+            self.assertEqual(rv.status_code, 200)
+            todo = Todo.select().where(Todo.id == 1)
+            self.assertEqual(todo[0].name, 'Wash dishes')
+            self.assertIn(b"Wash dishes", rv.data)
+            
+    def test_todo_delete(self):
+        with test_database(TEST_DB, (Todo, User)):
+            User.create_user('test_user', 'test_user@example.com', 'password')
+            Todo.create(name='Cook dinner')
+            rv = self.app.delete('/api/v1/todos/1',
+                               headers=headers)
+            self.assertEqual(rv.status_code, 204)
+            self.assertEqual(Todo.select().count(), 0)
+            self.assertEqual(b"", rv.data)
+            
+class TodoViewTestCase(unittest.TestCase):            
+    def setUp(self):
+        app.app.config['TESTING'] = True
+        app.app.config['WTF_CSRF_ENABLED'] = False
+        self.app = app.app.test_client()
+    
+    def test_empty_db(self):
+        with test_database(TEST_DB, (Todo,)):
+            rv = self.app.get('/')
+            self.assertIn(b"Add a New Task", rv.data)
+        
 
 
 if __name__ == '__main__':
