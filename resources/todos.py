@@ -1,8 +1,7 @@
-from flask import jsonify, Blueprint, abort
+from flask import Blueprint
 
-from flask.ext.restful import (Resource, Api, reqparse, 
-                               inputs, fields, marshal,
-                               marshal_with, url_for)
+from flask.ext.restful import (Resource, Api, reqparse, fields, marshal,
+                               marshal_with)
 
 from auth import auth
 import models
@@ -13,6 +12,7 @@ todo_fields = {
     'name': fields.String,
     'created_at': fields.DateTime
 }
+
 
 class TodoList(Resource):
     def __init__(self):
@@ -29,13 +29,14 @@ class TodoList(Resource):
         todos = [marshal(todo, todo_fields)
                  for todo in models.Todo.select()]
         return {'todos': todos}
-    
+
     @marshal_with(todo_fields)
     @auth.login_required
     def post(self):
         args = self.reqparse.parse_args()
         todo = models.Todo.create(**args)
         return todo, 201
+
 
 class Todo(Resource):
     def __init__(self):
@@ -44,7 +45,7 @@ class Todo(Resource):
             'name',
             required=True,
             help='No name provided',
-            location=['form', 'json']    
+            location=['form', 'json']
         )
         super().__init__()
 
@@ -52,15 +53,16 @@ class Todo(Resource):
     @auth.login_required
     def put(self, id):
         args = self.reqparse.parse_args()
-        query = models.Todo.update(**args).where(models.Todo.id==id)
+        query = models.Todo.update(**args).where(models.Todo.id == id)
         query.execute()
-        return models.Todo.get(models.Todo.id==id), 200
+        return models.Todo.get(models.Todo.id == id), 200
 
     @auth.login_required
     def delete(self, id):
-        query = models.Todo.delete().where(models.Todo.id==id)
+        query = models.Todo.delete().where(models.Todo.id == id)
         query.execute()
         return '', 204
+
 
 todos_api = Blueprint('resources.todos', __name__)
 api = Api(todos_api)
@@ -73,4 +75,4 @@ api.add_resource(
     Todo,
     '/api/v1/todos/<int:id>',
     endpoint='todo'
-)        
+)

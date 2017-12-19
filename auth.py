@@ -13,8 +13,8 @@ auth = MultiAuth(token_auth, basic_auth)
 def verify_password(email_or_username, password):
     try:
         user = models.User.get(
-            (models.User.email==email_or_username)|
-            (models.User.username==email_or_username)
+            (models.User.email == email_or_username) |
+            (models.User.username == email_or_username)
         )
         if not user.verify_password(password):
             return False
@@ -24,6 +24,7 @@ def verify_password(email_or_username, password):
         g.user = user
         return True
 
+
 @token_auth.verify_token
 def verify_token(token):
     user = models.User.verify_auth_token(token)
@@ -31,5 +32,3 @@ def verify_token(token):
         g.user = user
         return True
     return False
-
-

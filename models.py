@@ -3,12 +3,13 @@ import datetime
 from argon2 import PasswordHasher
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           BadSignature, SignatureExpired)
-from peewee import *
+from peewee import CharField, DateTimeField, Model, SqliteDatabase
 
 import config
 
 DATABASE = SqliteDatabase('todos.sqlite')
 HASHER = PasswordHasher()
+
 
 class Todo(Model):
     name = CharField()
@@ -31,7 +32,7 @@ class User(Model):
         email = email.lower()
         try:
             cls.select().where(
-                (cls.email==email)|(cls.username**username)
+                (cls.email == email) | (cls.username**username)
             ).get()
         except cls.DoesNotExist:
             user = cls(username=username, email=email)
@@ -49,7 +50,7 @@ class User(Model):
         except (SignatureExpired, BadSignature):
             return None
         else:
-            user = User.get(User.id==data['id'])
+            user = User.get(User.id == data['id'])
             return user
 
     @staticmethod
@@ -63,7 +64,7 @@ class User(Model):
         serializer = Serializer(config.SECRET_KEY, expires_in=expires)
         return serializer.dumps({'id': self.id})
 
-    
+
 def initialize():
     DATABASE.connect()
     DATABASE.create_tables([User, Todo], safe=True)
