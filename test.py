@@ -2,7 +2,7 @@ from coverage import coverage
 cov = coverage(omit=['env/*', 'test.py'])
 cov.start()
 
-import unittest, app, datetime
+import unittest, app, datetime, time
 
 from base64 import b64encode
 from playhouse.test_utils import test_database
@@ -49,6 +49,7 @@ class TodoModelTestCase(unittest.TestCase):
             Todo.create(name='Go bowling')
             todo = Todo.select().get()
             self.assertEqual(todo.name, 'Go bowling')
+            time.sleep(0.1)
             now = datetime.datetime.now()
             self.assertLess(todo.created_at, now)
 
